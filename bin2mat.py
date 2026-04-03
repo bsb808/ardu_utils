@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+"""
+Convert ArduPilot .BIN log file to MATLAB .mat file.
+Captures all message types and numeric fields.
+
+Usage: ./bin_to_mat.py <logfile.BIN>
+Output: <logfile.BIN>.mat
+"""
+
 from pymavlink import mavutil
 import scipy.io
 import numpy as np
@@ -8,7 +16,7 @@ import os
 
 # ── Command line argument ──────────────────────────────────────────────────
 if len(sys.argv) != 2:
-    print("Usage: python bin_to_mat.py <logfile.BIN>")
+    print("Usage: ./bin_to_mat.py <logfile.BIN>")
     sys.exit(1)
 
 input_file = sys.argv[1]
@@ -17,9 +25,6 @@ if not os.path.isfile(input_file):
     sys.exit(1)
 
 output_file = input_file + ".mat"
-
-# ── Message types relevant to USV PID tuning ──────────────────────────────
-TARGET_MESSAGES = ['ATT', 'RATE', 'PIDY', 'PIDX', 'RCOU', 'RCIN', 'CTUN', 'NTUN']
 
 # ── PWM conversion helpers ─────────────────────────────────────────────────
 PWM_MIN = 1000
@@ -38,23 +43,30 @@ def pwm_to_pct_unidirectional(pwm):
 print(f"Reading: {input_file}")
 mlog = mavutil.mavlink_connection(input_file)
 
-data = {msg_type: [] for msg_type in TARGET_MESSAGES}
+data = {}
 
 while True:
-    msg = mlog.recv_match(type=TARGET_MESSAGES)
+    msg = mlog.recv_match()
     if msg is None:
         break
     msg_type = msg.get_type()
+    if msg_type == 'BAD_DATA':
+        continue
+    if msg_type not in data:
+        data[msg_type] = []
     d = msg.to_dict()
     d['timestamp'] = msg._timestamp
     data[msg_type].append(d)
+
+print(f"Found {len(data)} message types:")
+for msg_type, messages in sorted(data.items()):
+    print(f"  {msg_type}: {len(messages)} records")
 
 # ── Convert to DataFrames ──────────────────────────────────────────────────
 frames = {}
 for msg_type, messages in data.items():
     if messages:
         frames[msg_type] = pd.DataFrame(messages)
-        print(f"  {msg_type}: {len(messages)} records")
 
 # ── Build MAT output ───────────────────────────────────────────────────────
 mat_data = {}
@@ -85,5 +97,5 @@ if 'RCIN' in frames:
 
 # ── Save ───────────────────────────────────────────────────────────────────
 scipy.io.savemat(output_file, mat_data)
-print(f"Saved: {output_file}")
+print(f"\nSaved: {output_file}")
 print(f"Total fields exported: {len(mat_data)}")
