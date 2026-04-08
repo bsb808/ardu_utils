@@ -85,15 +85,15 @@ if 'RCOU' in frames:
     rcou = frames['RCOU']
     if 'C1' in rcou.columns:
         mat_data['RCOU_C1_pct_throttle'] = pwm_to_pct_unidirectional(rcou['C1'])
-    if 'C2' in rcou.columns:
-        mat_data['RCOU_C2_pct_rudder'] = pwm_to_pct(rcou['C2'])
+    if 'C3' in rcou.columns:
+        mat_data['RCOU_C3_pct_rudder'] = pwm_to_pct(rcou['C2'])
 
 if 'RCIN' in frames:
     rcin = frames['RCIN']
     if 'C1' in rcin.columns:
         mat_data['RCIN_C1_pct_throttle'] = pwm_to_pct_unidirectional(rcin['C1'])
-    if 'C2' in rcin.columns:
-        mat_data['RCIN_C2_pct_rudder'] = pwm_to_pct(rcin['C2'])
+    if 'C3' in rcin.columns:
+        mat_data['RCIN_C3_pct_rudder'] = pwm_to_pct(rcin['C2'])
 
 # ── Save ───────────────────────────────────────────────────────────────────
 scipy.io.savemat(output_file, mat_data)
